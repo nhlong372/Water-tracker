@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Giọt Nước">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3b93f7">
+    <title>Giọt Nước - Nhắc Nhở Uống Nước</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #3b93f7 0%, #5eaef9 45%, #8ec8fc 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Hiệu ứng sóng nước bên trong vòng tròn */
+        .water-circle-container {
+            position: relative;
+            width: 244px;
+            height: 244px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(14, 78, 155, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+        }
+
+        .water-wave {
+            position: absolute;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.28);
+            border-radius: 42%;
+            transition: top 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: waveRotate 8s linear infinite;
+            z-index: 1;
+        }
+
+        .water-wave-2 {
+            position: absolute;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 38%;
+            transition: top 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: waveRotate 11s linear infinite reverse;
+            z-index: 0;
+        }
+
+        @keyframes waveRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Thanh tiến trình SVG quanh vòng tròn */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.6s ease-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Tùy chỉnh thanh cuộn danh sách lịch sử */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 10px;
+        }
+
+        /* Hiệu ứng nảy nhẹ khi bấm nút */
+        .btn-bounce:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-4 sm:p-5 max-w-md mx-auto">
+
+    <!-- Thông báo nổi (Toast Message) thay thế alert() -->
+    <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-11/12 max-w-sm pointer-events-none transition-all duration-300 opacity-0 translate-y-[-10px]">
+        <div class="bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20">
+            <span class="text-xl">💧</span>
+            <p id="toast-text" class="text-sm font-medium leading-snug"></p>
+        </div>
+    </div>
+
+    <!-- PHẦN 1: HEADER (GIỌT NƯỚC & LEVEL) -->
+    <header class="w-full flex items-center justify-between pt-1 pb-2">
+        <!-- Nút mở cài đặt mục tiêu -->
+        <button onclick="openSettingsModal()" class="p-2.5 rounded-full bg-white/15 hover:bg-white/25 transition btn-bounce" title="Cài đặt mục tiêu">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+            </svg>
+        </button>
+
+        <!-- Linh vật Giọt nước & Cấp độ -->
+        <div class="flex items-center gap-3 bg-white/15 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+            <div class="relative w-9 h-9 flex items-center justify-center">
+                <svg viewBox="0 0 64 64" class="w-9 h-9 drop-shadow">
+                    <path d="M32 6 C32 6 14 26 14 39 C14 49 22 56 32 56 C42 56 50 49 50 39 C50 26 32 6 32 6 Z" fill="#38bdf8"/>
+                    <path d="M26 18 C22 24 19 31 19 37" stroke="#bae6fd" stroke-width="3" stroke-linecap="round" fill="none"/>
+                    <circle cx="26" cy="34" r="2.2" fill="#0f172a"/>
+                    <circle cx="38" cy="34" r="2.2" fill="#0f172a"/>
+                    <path d="M29 38 Q32 42 35 38" stroke="#0f172a" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <path d="M13 39 L19 43 L25 38 L32 43 L39 38 L45 43 L51 39 C51 51 42.5 59 32 59 C21.5 59 13 51 13 39 Z" fill="#f8fafc"/>
+                </svg>
+            </div>
+            <div class="text-left">
+                <div class="flex items-center gap-1.5">
+                    <span id="user-level-badge" class="text-xs font-bold uppercase tracking-wider text-sky-100">Level 1</span>
+                    <span id="streak-badge" class="text-[11px] bg-amber-400/90 text-slate-900 font-bold px-1.5 py-0.2 rounded-full">0 ngày</span>
+                </div>
+                <div id="user-rank-title" class="text-sm font-bold text-white leading-tight">Giọt nước mầm non</div>
+            </div>
+        </div>
+
+        <!-- Nút Bật/Tắt Chuông thông báo -->
+        <button id="bell-btn" onclick="toggleNotifications()" class="p-2.5 rounded-full bg-white/15 hover:bg-white/25 transition btn-bounce relative" title="Bật/tắt âm thanh & thông báo">
+            <svg id="bell-icon-on" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <svg id="bell-icon-off" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white/60 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-.707-1.707l1.414-1.414A1 1 0 005 11.172V11a7.002 7.002 0 0110.5-6.062M19 11v.172a1 1 0 00.293.707l1.414 1.414A1 1 0 0120 15h-1m-7 4a2 2 0 01-2-2h4a2 2 0 01-2 2zM3 3l18 18" />
+            </svg>
+            <span id="bell-status-dot" class="absolute top-2 right-2.5 w-2 h-2 bg-emerald-400 rounded-full ring-2 ring-sky-500"></span>
+        </button>
+    </header>
+
+    <!-- PHẦN 2: VÒNG TRÒN TIẾN ĐỘ CHÍNH -->
+    <main class="w-full flex flex-col items-center my-2">
+        <div class="relative flex items-center justify-center">
+            <!-- Vòng SVG hiển thị phần trăm chính xác -->
+            <svg class="w-[270px] h-[270px] absolute z-10 pointer-events-none" viewBox="0 0 276 276">
+                <circle cx="138" cy="138" r="130" stroke="rgba(255,255,255,0.22)" stroke-width="6" fill="none" />
+                <circle id="progress-ring" class="progress-ring-circle" cx="138" cy="138" r="130" stroke="#ffffff" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="816.8" stroke-dashoffset="816.8" />
+            </svg>
+
+            <!-- Lõi vòng tròn chứa sóng nước -->
+            <div class="water-circle-container flex flex-col items-center justify-center text-center p-4">
+                <div id="wave-1" class="water-wave" style="top: 100%;"></div>
+                <div id="wave-2" class="water-wave-2" style="top: 100%;"></div>
+
+                <!-- Nội dung số liệu nổi trên mặt nước -->
+                <div class="relative z-10 flex flex-col items-center">
+                    <span class="text-xs sm:text-sm font-medium text-white/90 tracking-wide mb-1">Mục tiêu hàng ngày</span>
+                    <div class="flex items-baseline justify-center font-extrabold tracking-tight drop-shadow-sm">
+                        <span id="current-ml" class="text-4xl sm:text-[42px]">0</span>
+                        <span class="text-xl sm:text-2xl text-white/90 mx-0.5">/</span>
+                        <button onclick="openSettingsModal()" class="text-xl sm:text-2xl text-white/95 underline decoration-white/40 decoration-dashed underline-offset-4 hover:text-white" title="Bấm để sửa mục tiêu">
+                            <span id="goal-ml">2800</span>ml
+                        </button>
+                    </div>
+                    <div id="percent-badge" class="mt-2 px-3 py-0.5 rounded-full bg-black/15 text-xs font-semibold text-white">
+                        0% hoàn thành
+                    </div>
+
+                    <!-- Biểu tượng thông tin thể trạng & chế độ đêm -->
+                    <div class="flex items-center gap-3 mt-3 pt-2.5 border-t border-white/25 text-white/90 text-xs">
+                        <span class="flex items-center gap-1" title="Mức tối ưu cho nam 116kg">
+                            🧍 116kg
+                        </span>
+                        <span class="opacity-40">|</span>
+                        <span id="night-shield-status" class="flex items-center gap-1 font-medium">
+                            🌙 Khóa sau 20:00
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PHẦN 3: CHỌN LOẠI ĐỒ UỐNG & DUNG TÍCH -->
+    <section class="w-full flex flex-col items-center gap-2.5 my-1">
+        <!-- Thanh chọn loại đồ uống -->
+        <div class="flex items-center justify-center gap-1.5 bg-black/15 p-1.5 rounded-2xl w-full">
+            <button onclick="selectDrink('water')" id="drink-water" class="drink-tab flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition flex flex-col items-center gap-1 bg-white text-sky-600 shadow-sm">
+                <span class="text-base">💧</span>
+                <span>Nước suối</span>
+            </button>
+            <button onclick="selectDrink('coffee')" id="drink-coffee" class="drink-tab flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition flex flex-col items-center gap-1 text-white/90 hover:bg-white/10">
+                <span class="text-base">☕</span>
+                <span>Cà phê</span>
+            </button>
+            <button onclick="selectDrink('milk')" id="drink-milk" class="drink-tab flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition flex flex-col items-center gap-1 text-white/90 hover:bg-white/10">
+                <span class="text-base">🥛</span>
+                <span>Sữa tươi</span>
+            </button>
+            <button onclick="selectDrink('yogurt')" id="drink-yogurt" class="drink-tab flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition flex flex-col items-center gap-1 text-white/90 hover:bg-white/10">
+                <span class="text-base">🥣</span>
+                <span>Sữa chua</span>
+            </button>
+        </div>
+
+        <!-- Bộ chọn dung tích kiểu thanh trượt ngang -->
+        <div class="w-full flex items-center justify-between px-2 py-0.5">
+            <button onclick="cycleVolume(-1)" class="p-2.5 text-white/80 hover:text-white active:scale-90 transition" title="Giảm dung tích">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            <button onclick="cycleVolume(-1)" id="vol-prev" class="text-sm font-medium text-white/75 hover:text-white transition w-16 text-center">
+                100ml
+            </button>
+
+            <!-- Nút Bấm Uống Chính -->
+            <button onclick="addWater()" class="btn-bounce bg-white text-sky-600 hover:bg-sky-50 px-6 py-3 rounded-full shadow-lg shadow-sky-900/20 flex items-center gap-2.5 font-bold text-base transition border-2 border-white">
+                <span id="selected-drink-icon" class="text-lg">💧</span>
+                <span>+ <span id="vol-current">200</span>ml</span>
+            </button>
+
+            <button onclick="cycleVolume(1)" id="vol-next" class="text-sm font-medium text-white/75 hover:text-white transition w-16 text-center">
+                300ml
+            </button>
+
+            <button onclick="cycleVolume(1)" class="p-2.5 text-white/80 hover:text-white active:scale-90 transition" title="Tăng dung tích">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Nút nhập dung tích tùy chỉnh -->
+        <button onclick="openCustomVolModal()" class="text-xs font-medium text-white/95 hover:text-white bg-white/15 hover:bg-white/25 px-3.5 py-1 rounded-full transition">
+            ✏️ Nhập dung tích tùy chỉnh
+        </button>
+    </section>
+
+    <!-- PHẦN 4: KHUNG NHẮC NHỞ & NHẬT KÝ UỐNG NƯỚC (CÓ XÓA HÀNG LOẠT RÕ RÀNG) -->
+    <section class="w-full bg-slate-900/85 backdrop-blur-md rounded-3xl p-4 shadow-xl border border-white/15 mt-2">
+        <!-- Thanh trên cùng: Tiêu đề + Cài vào máy + Hoàn tác -->
+        <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-300">Nhắc nhở thông minh</span>
+            <div class="flex items-center gap-1.5">
+                <button onclick="openGuideModal()" class="text-xs text-sky-300 hover:text-white flex items-center gap-1 bg-sky-500/20 px-2.5 py-1 rounded-full transition">
+                    <span>📲 Cài vào máy</span>
+                </button>
+                <button onclick="undoLastEntry()" id="undo-btn" class="text-xs text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-full transition disabled:opacity-30" disabled>
+                    <span>↩ Hoàn tác</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dòng hiển thị giờ nhắc tiếp theo & nút chỉnh chu kỳ -->
+        <div class="flex items-center justify-between bg-white/5 p-3 rounded-2xl border border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-[11px] text-slate-300">Nhắc nhở tiếp theo (<span id="interval-label">90p</span>/lần)</p>
+                    <p id="next-reminder-text" class="text-base font-bold text-white">15:30</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="testReminderNotification()" class="px-2.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-semibold transition" title="Kiểm tra chuông & thông báo">
+                    🔔 Test
+                </button>
+                <button onclick="openReminderModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition" title="Chỉnh chu kỳ nhắc">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Công tắc bảo vệ giấc ngủ ban đêm (Ngừng nhắc 20:00 - 07:00) -->
+        <div class="flex items-center justify-between mt-2.5 px-1">
+            <div class="flex items-center gap-2">
+                <span class="text-sm">🛡️</span>
+                <div>
+                    <p class="text-xs font-semibold text-white">Bảo vệ giấc ngủ (Ngừng nhắc 20:00 – 07:00)</p>
+                </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="night-mode-toggle" class="sr-only peer" checked onchange="toggleNightProtection()">
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+        </div>
+
+        <!-- KHU VỰC NHẬT KÝ HÔM NAY & CHỨC NĂNG XÓA HÀNG LOẠT -->
+        <div class="mt-3 pt-3 border-t border-white/15">
+            <!-- Thanh tiêu đề nổi bật với nút "☑️ Chọn xóa nhiều" và "🗑️ Xóa tất cả" luôn hiển thị rõ ràng -->
+            <div class="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
+                <span class="text-xs font-bold text-slate-200">
+                    Nhật ký hôm nay (<span id="log-count" class="text-sky-300">0</span>)
+                </span>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleBulkMode()" id="bulk-mode-btn" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/30 transition btn-bounce">
+                        ☑️ Chọn xóa nhiều
+                    </button>
+                    <button onclick="requestClearAllToday()" id="clear-all-header-btn" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 transition btn-bounce">
+                        🗑️ Xóa tất cả
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh công cụ Thao tác hàng loạt (Hiện nổi bật ngay phía trên danh sách khi bật chế độ Chọn xóa nhiều) -->
+            <div id="bulk-toolbar" class="hidden bg-gradient-to-r from-sky-950/90 to-slate-800/95 border border-sky-400/40 rounded-2xl p-3 mb-2.5 shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <button onclick="toggleSelectAllLogs()" id="select-all-btn" class="text-xs font-bold text-sky-300 hover:text-white bg-sky-500/20 px-2.5 py-1 rounded-lg transition">
+                        Chọn tất cả
+                    </button>
+                    <button onclick="toggleBulkMode()" class="text-xs font-semibold text-slate-300 hover:text-white bg-white/10 px-2.5 py-1 rounded-lg transition">
+                        Hủy / Xong
+                    </button>
+                </div>
+
+                <div class="text-xs text-sky-100 font-medium mb-2.5 bg-black/25 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                    <span>Đã chọn <strong id="selected-count-text" class="text-sky-300">0</strong> mục</span>
+                    <span>Tổng: <strong id="selected-ml-text" class="text-amber-300">0 ml</strong></span>
+                </div>
+
+                <button onclick="requestDeleteSelectedLogs()" id="delete-selected-btn" disabled class="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700/80 disabled:text-slate-400 text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5">
+                    <span>🗑️ Xóa đã chọn (<span id="delete-btn-count">0</span>)</span>
+                </button>
+            </div>
+
+            <!-- Danh sách nhật ký các lần uống -->
+            <div id="history-list" class="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                <p class="text-xs text-slate-400 italic text-center py-3">Chưa có dữ liệu hôm nay. Hãy bấm nút uống nước nhé!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL 1: CÀI ĐẶT MỤC TIÊU NƯỚC -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">Mục tiêu nước hàng ngày</h3>
+            <p class="text-xs text-slate-400 mb-4">Với chiều cao 165cm và cân nặng 116kg, mức khuyến nghị an toàn là <strong class="text-sky-300">2.500 – 3.000 ml/ngày</strong>.</p>
+
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/10 mb-4 text-center">
+                <span id="modal-goal-display" class="text-3xl font-extrabold text-sky-400">2800</span>
+                <span class="text-base font-semibold text-slate-300"> ml / ngày</span>
+                <input type="range" id="goal-slider" min="1500" max="4000" step="100" value="2800" oninput="updateGoalPreview(this.value)" class="w-full mt-3 accent-sky-500 cursor-pointer">
+                <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+                    <span>1500ml</span>
+                    <span class="text-emerald-400 font-semibold">2800ml (Tối ưu)</span>
+                    <span>4000ml</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="closeSettingsModal()" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-semibold transition">Đóng</button>
+                <button onclick="saveGoalSetting()" class="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-sm font-bold transition">Lưu mục tiêu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CÀI ĐẶT CHU KỲ NHẮC NHỞ (30p, 45p, 60p, 90p, 120p) -->
+    <div id="reminder-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">Chu kỳ nhắc uống nước</h3>
+            <p class="text-xs text-slate-400 mb-4">Chia nhỏ các lần uống giúp thận lọc tốt và tránh bị dồn nước vào buổi tối.</p>
+
+            <div class="grid grid-cols-2 gap-2.5 mb-5">
+                <button onclick="setReminderInterval(30)" class="interval-opt py-3 px-3 rounded-2xl border border-white/15 bg-white/5 hover:bg-sky-500/20 text-sm font-semibold transition" data-min="30">Mỗi 30 phút</button>
+                <button onclick="setReminderInterval(45)" class="interval-opt py-3 px-3 rounded-2xl border border-white/15 bg-white/5 hover:bg-sky-500/20 text-sm font-semibold transition" data-min="45">Mỗi 45 phút</button>
+                <button onclick="setReminderInterval(60)" class="interval-opt py-3 px-3 rounded-2xl border border-white/15 bg-white/5 hover:bg-sky-500/20 text-sm font-semibold transition" data-min="60">Mỗi 60 phút</button>
+                <button onclick="setReminderInterval(90)" class="interval-opt py-3 px-3 rounded-2xl border border-sky-400 bg-sky-500/20 text-sky-300 text-sm font-bold transition" data-min="90">Mỗi 90 phút</button>
+                <button onclick="setReminderInterval(120)" class="interval-opt col-span-2 py-3 px-3 rounded-2xl border border-white/15 bg-white/5 hover:bg-sky-500/20 text-sm font-semibold transition" data-min="120">Mỗi 120 phút (2 tiếng)</button>
+            </div>
+
+            <button onclick="closeReminderModal()" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-sm font-bold transition">Xong</button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: NHẬP DUNG TÍCH TÙY CHỈNH -->
+    <div id="custom-vol-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">Dung tích tùy chỉnh</h3>
+            <p class="text-xs text-slate-400 mb-4">Nhập lượng nước thực tế của chai hoặc ly bạn vừa uống (từ 10ml đến 2000ml).</p>
+            <div class="flex items-center gap-2 mb-4">
+                <input type="number" id="custom-vol-input" min="10" max="2000" step="10" value="350" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-lg font-bold text-white focus:outline-none focus:border-sky-400" placeholder="Ví dụ: 350">
+                <span class="text-sm font-bold text-slate-300">ml</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeCustomVolModal()" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-semibold transition">Hủy</button>
+                <button onclick="confirmCustomVolume()" class="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-sm font-bold transition">Thêm ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: HỘP THOẠI XÁC NHẬN XÓA (Custom Modal thay thế window.confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-rose-500/40 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl mb-3">🗑️</div>
+            <h3 id="confirm-title" class="text-lg font-bold mb-1.5">Xác nhận xóa nhật ký</h3>
+            <p id="confirm-desc" class="text-xs text-slate-300 mb-5 leading-relaxed"></p>
+            <div class="flex gap-2.5">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-semibold transition">Giữ lại</button>
+                <button id="confirm-yes-btn" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition shadow-lg">Đồng ý xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: HƯỚNG DẪN CÀI ĐẶT RA MÀN HÌNH CHÍNH ĐIỆN THOẠI -->
+    <div id="guide-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-3xl w-full max-w-sm p-6 text-white shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <h3 class="text-lg font-bold mb-1">📲 Cài đặt lên điện thoại</h3>
+            <p class="text-xs text-slate-400 mb-4">Thêm ứng dụng này ra màn hình chính để dùng mượt mà như app gốc, không quảng cáo.</p>
+
+            <div class="space-y-3 text-xs text-slate-200 mb-5">
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <p class="font-bold text-sky-300 mb-1">🤖 Trên Android (Chrome / Samsung Internet):</p>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-300">
+                        <li>Mở trang/file này bằng trình duyệt <strong>Chrome</strong>.</li>
+                        <li>Bấm biểu tượng <strong>3 chấm dọc (⋮)</strong> ở góc trên bên phải.</li>
+                        <li>Chọn <strong>"Thêm vào Màn hình chính"</strong> (Add to Home screen) hoặc <strong>"Cài đặt ứng dụng"</strong>.</li>
+                    </ol>
+                </div>
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <p class="font-bold text-sky-300 mb-1">🍎 Trên iPhone (Safari):</p>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-300">
+                        <li>Mở trang này bằng trình duyệt <strong>Safari</strong>.</li>
+                        <li>Bấm nút <strong>Chia sẻ (ô vuông có mũi tên chỉ lên)</strong> ở thanh dưới cùng.</li>
+                        <li>Cuộn xuống chọn <strong>"Thêm vào MH chính"</strong> (Add to Home Screen).</li>
+                    </ol>
+                </div>
+            </div>
+
+            <button onclick="closeGuideModal()" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-sm font-bold transition">Đã hiểu</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH DỮ LIỆU & TRẠNG THÁI ỨNG DỤNG ---
+        const VOLUMES = [100, 150, 200, 250, 300, 400, 500];
+        const DRINKS = {
+            water:  { name: 'Nước suối', icon: '💧', note: 'Tinh khiết 0 calo' },
+            coffee: { name: 'Cà phê',    icon: '☕', note: 'Nên uống trước 14:00' },
+            milk:   { name: 'Sữa tươi',  icon: '🥛', note: 'Ưu tiên không đường' },
+            yogurt: { name: 'Sữa chua',  icon: '🥣', note: 'Tốt cho tiêu hóa' }
+        };
+
+        let state = {
+            date: new Date().toLocaleDateString('vi-VN'),
+            goal: 2800,
+            current: 0,
+            selectedDrink: 'water',
+            volumeIndex: 2, // Mặc định 200ml
+            logs: [],
+            streakDays: 0,
+            completedToday: false,
+            notificationsEnabled: true,
+            nightProtection: true, // Tự động ngừng sau 20:00
+            reminderIntervalMin: 90,
+            nextReminderTimestamp: null
+        };
+
+        // Trạng thái chế độ Chọn xóa nhiều (Bulk Select Mode)
+        let isBulkMode = false;
+        let selectedLogIds = new Set();
+        let reminderTimer = null;
+
+        // --- KHỞI TẠO KHI TẢI TRANG ---
+        window.onload = function() {
+            loadState();
+            checkNewDay();
+            if (!state.nextReminderTimestamp) {
+                scheduleNextReminder(state.reminderIntervalMin);
+            }
+            updateUI();
+            startReminderLoop();
+        };
+
+        // --- LƯU & ĐỌC LOCALSTORAGE ---
+        function saveState() {
+            try {
+                localStorage.setItem('giot_nuoc_app_v2', JSON.stringify(state));
+            } catch (e) {
+                console.error('Không thể lưu dữ liệu:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('giot_nuoc_app_v2') || localStorage.getItem('giot_nuoc_app_v1');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                }
+            } catch (e) {
+                console.error('Lỗi đọc dữ liệu:', e);
+            }
+        }
+
+        function checkNewDay() {
+            const today = new Date().toLocaleDateString('vi-VN');
+            if (state.date !== today) {
+                state.date = today;
+                state.current = 0;
+                state.logs = [];
+                state.completedToday = false;
+                isBulkMode = false;
+                selectedLogIds.clear();
+                scheduleNextReminder(state.reminderIntervalMin);
+                saveState();
+            }
+        }
+
+        // --- XỬ LÝ THÊM NƯỚC & CHỌN ĐỒ UỐNG ---
+        function selectDrink(drinkKey) {
+            state.selectedDrink = drinkKey;
+
+            document.querySelectorAll('.drink-tab').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-sky-600', 'shadow-sm');
+                btn.classList.add('text-white/90', 'hover:bg-white/10');
+            });
+            const activeBtn = document.getElementById(`drink-${drinkKey}`);
+            activeBtn.classList.remove('text-white/90', 'hover:bg-white/10');
+            activeBtn.classList.add('bg-white', 'text-sky-600', 'shadow-sm');
+
+            document.getElementById('selected-drink-icon').textContent = DRINKS[drinkKey].icon;
+
+            const currentHour = new Date().getHours();
+            if (drinkKey === 'coffee' && currentHour >= 14) {
+                showToast('☕ Lưu ý: Uống cà phê sau 14:00 có thể kích thích bàng quang và làm khó ngủ ban đêm.');
+            }
+            saveState();
+        }
+
+        function cycleVolume(direction) {
+            state.volumeIndex = (state.volumeIndex + direction + VOLUMES.length) % VOLUMES.length;
+            updateVolumeDisplay();
+            saveState();
+        }
+
+        function updateVolumeDisplay() {
+            const prevIdx = (state.volumeIndex - 1 + VOLUMES.length) % VOLUMES.length;
+            const nextIdx = (state.volumeIndex + 1) % VOLUMES.length;
+
+            document.getElementById('vol-prev').textContent = `${VOLUMES[prevIdx]}ml`;
+            document.getElementById('vol-current').textContent = VOLUMES[state.volumeIndex];
+            document.getElementById('vol-next').textContent = `${VOLUMES[nextIdx]}ml`;
+        }
+
+        function addWater(customAmount = null) {
+            checkNewDay();
+            const amount = customAmount !== null ? customAmount : VOLUMES[state.volumeIndex];
+            const drink = DRINKS[state.selectedDrink];
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            state.current += amount;
+            state.logs.unshift({
+                id: Date.now() + Math.floor(Math.random() * 10000),
+                time: timeStr,
+                amount: amount,
+                drinkKey: state.selectedDrink,
+                drinkName: drink.name,
+                icon: drink.icon
+            });
+
+            if (state.current >= state.goal && !state.completedToday) {
+                state.completedToday = true;
+                state.streakDays += 1;
+                playChimeSound(true);
+                showToast(`🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ${state.goal}ml hôm nay!`);
+            } else {
+                playWaterDropSound();
+                if (now.getHours() >= 20) {
+                    showToast(`🌙 Đã thêm ${amount}ml. Sau 20:00 chỉ nên nhấp ngụm nhỏ để tránh tiểu đêm nhé!`);
+                } else {
+                    showToast(`${drink.icon} Đã thêm +${amount}ml ${drink.name}`);
+                }
+            }
+
+            scheduleNextReminder(state.reminderIntervalMin);
+            saveState();
+            updateUI();
+        }
+
+        function undoLastEntry() {
+            if (state.logs.length === 0) return;
+            const removed = state.logs.shift();
+            selectedLogIds.delete(removed.id);
+            recalculateTotalAndLevel();
+
+            showToast(`↩ Đã hoàn tác ${removed.amount}ml ${removed.drinkName}`);
+            saveState();
+            updateUI();
+        }
+
+        function deleteLogItem(id) {
+            const idx = state.logs.findIndex(item => item.id === id);
+            if (idx === -1) return;
+            const removed = state.logs[idx];
+            state.logs.splice(idx, 1);
+            selectedLogIds.delete(id);
+            recalculateTotalAndLevel();
+
+            showToast(`🗑️ Đã xóa ${removed.amount}ml ${removed.drinkName}`);
+            saveState();
+            updateUI();
+        }
+
+        // --- CHỨC NĂNG XÓA HÀNG LOẠT (BULK DELETE) ---
+        function toggleBulkMode() {
+            if (state.logs.length === 0) {
+                showToast('ℹ️ Nhật ký hôm nay đang trống, chưa có mục nào để chọn.');
+                isBulkMode = false;
+                selectedLogIds.clear();
+                updateUI();
+                return;
+            }
+            isBulkMode = !isBulkMode;
+            if (!isBulkMode) {
+                selectedLogIds.clear();
+            }
+            updateUI();
+        }
+
+        function toggleSelectLog(id) {
+            if (selectedLogIds.has(id)) {
+                selectedLogIds.delete(id);
+            } else {
+                selectedLogIds.add(id);
+            }
+            updateBulkToolbarUI();
+            renderHistoryList();
+        }
+
+        function toggleSelectAllLogs() {
+            if (selectedLogIds.size === state.logs.length) {
+                selectedLogIds.clear();
+            } else {
+                state.logs.forEach(item => selectedLogIds.add(item.id));
+            }
+            updateBulkToolbarUI();
+            renderHistoryList();
+        }
+
+        function getSelectedStats() {
+            let count = 0;
+            let totalMl = 0;
+            state.logs.forEach(item => {
+                if (selectedLogIds.has(item.id)) {
+                    count += 1;
+                    totalMl += item.amount;
+                }
+            });
+            return { count, totalMl };
+        }
+
+        function requestDeleteSelectedLogs() {
+            const { count, totalMl } = getSelectedStats();
+            if (count === 0) return;
+
+            openConfirmModal(
+                `Xóa ${count} mục đã chọn?`,
+                `Bạn sắp xóa ${count} mục nhật ký uống nước với tổng dung tích là ${totalMl} ml. Mực nước và tiến độ hôm nay sẽ được tự động trừ đi tương ứng.`,
+                () => {
+                    state.logs = state.logs.filter(item => !selectedLogIds.has(item.id));
+                    selectedLogIds.clear();
+                    if (state.logs.length === 0) {
+                        isBulkMode = false;
+                    }
+                    recalculateTotalAndLevel();
+                    saveState();
+                    updateUI();
+                    showToast(`✅ Đã xóa ${count} mục (trừ ${totalMl} ml)`);
+                }
+            );
+        }
+
+        function requestClearAllToday() {
+            if (state.logs.length === 0) {
+                showToast('ℹ️ Nhật ký hôm nay đã trống rồi!');
+                return;
+            }
+            const totalCount = state.logs.length;
+            const totalMl = state.current;
+
+            openConfirmModal(
+                'Xóa tất cả nhật ký hôm nay?',
+                `Hành động này sẽ xóa toàn bộ ${totalCount} mục uống nước (tổng ${totalMl} ml) trong hôm nay và đưa tiến độ về 0 ml.`,
+                () => {
+                    state.logs = [];
+                    state.current = 0;
+                    selectedLogIds.clear();
+                    isBulkMode = false;
+                    recalculateTotalAndLevel();
+                    saveState();
+                    updateUI();
+                    showToast(`✅ Đã xóa tất cả ${totalCount} mục (trừ ${totalMl} ml)`);
+                }
+            );
+        }
+
+        function recalculateTotalAndLevel() {
+            state.current = state.logs.reduce((sum, item) => sum + item.amount, 0);
+            if (state.current < state.goal && state.completedToday) {
+                state.completedToday = false;
+                state.streakDays = Math.max(0, state.streakDays - 1);
+            } else if (state.current >= state.goal && !state.completedToday) {
+                state.completedToday = true;
+                state.streakDays += 1;
+            }
+        }
+
+        function updateBulkToolbarUI() {
+            const bulkBtn = document.getElementById('bulk-mode-btn');
+            const clearAllBtn = document.getElementById('clear-all-header-btn');
+            const toolbar = document.getElementById('bulk-toolbar');
+            const selectAllBtn = document.getElementById('select-all-btn');
+            const selectedCountText = document.getElementById('selected-count-text');
+            const selectedMlText = document.getElementById('selected-ml-text');
+            const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+            const deleteBtnCount = document.getElementById('delete-btn-count');
+
+            const hasLogs = state.logs.length > 0;
+            clearAllBtn.classList.toggle('opacity-40', !hasLogs);
+
+            if (isBulkMode && hasLogs) {
+                bulkBtn.textContent = '✕ Thoát chọn';
+                bulkBtn.className = 'text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 transition btn-bounce';
+                toolbar.classList.remove('hidden');
+            } else {
+                isBulkMode = false;
+                bulkBtn.textContent = '☑️ Chọn xóa nhiều';
+                bulkBtn.className = `text-xs font-semibold px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/30 transition btn-bounce ${!hasLogs ? 'opacity-40' : ''}`;
+                toolbar.classList.add('hidden');
+            }
+
+            const { count, totalMl } = getSelectedStats();
+            selectAllBtn.textContent = (count === state.logs.length && hasLogs) ? 'Bỏ chọn tất cả' : `Chọn tất cả (${state.logs.length})`;
+            selectedCountText.textContent = count;
+            selectedMlText.textContent = `${totalMl} ml`;
+            deleteBtnCount.textContent = count;
+            deleteSelectedBtn.disabled = count === 0;
+        }
+
+        // --- HỆ THỐNG NHẮC NHỞ & BẢO VỆ GIẤC NGỦ BAN ĐÊM ---
+        function scheduleNextReminder(minutes) {
+            const now = new Date();
+            let nextTime = new Date(now.getTime() + minutes * 60000);
+
+            if (state.nightProtection) {
+                const nextHour = nextTime.getHours();
+                if (nextHour >= 20 || nextHour < 7) {
+                    if (nextHour >= 20) {
+                        nextTime.setDate(nextTime.getDate() + 1);
+                    }
+                    nextTime.setHours(7, 30, 0, 0);
+                }
+            }
+
+            state.nextReminderTimestamp = nextTime.getTime();
+            saveState();
+            updateReminderText();
+        }
+
+        function updateReminderText() {
+            const textEl = document.getElementById('next-reminder-text');
+            document.getElementById('interval-label').textContent = `${state.reminderIntervalMin}p`;
+
+            if (!state.notificationsEnabled) {
+                textEl.textContent = 'Đang tắt nhắc nhở';
+                textEl.className = 'text-sm font-semibold text-slate-400';
+                return;
+            }
+
+            textEl.className = 'text-base font-bold text-white';
+            const nextDate = new Date(state.nextReminderTimestamp);
+            const now = new Date();
+            const timeFormatted = nextDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            if (nextDate.getDate() !== now.getDate()) {
+                textEl.textContent = `${timeFormatted} (Sáng mai)`;
+            } else {
+                textEl.textContent = timeFormatted;
+            }
+        }
+
+        function startReminderLoop() {
+            if (reminderTimer) clearInterval(reminderTimer);
+            reminderTimer = setInterval(() => {
+                checkNewDay();
+                if (!state.notificationsEnabled) return;
+
+                const now = new Date();
+                const hour = now.getHours();
+
+                if (state.nightProtection && (hour >= 20 || hour < 7)) {
+                    updateReminderText();
+                    return;
+                }
+
+                if (state.nextReminderTimestamp && now.getTime() >= state.nextReminderTimestamp) {
+                    triggerReminderAlert();
+                    scheduleNextReminder(state.reminderIntervalMin);
+                }
+            }, 15000);
+        }
+
+        function triggerReminderAlert() {
+            playChimeSound(false);
+            showToast('💧 Đến giờ uống nước rồi! Hãy nhấp một ngụm 200ml nhé.');
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Giọt Nước nhắc bạn 💧', {
+                    body: `Đã đến giờ uống nước! Tiến độ hôm nay: ${state.current}/${state.goal}ml.`
+                });
+            }
+        }
+
+        function toggleNotifications() {
+            state.notificationsEnabled = !state.notificationsEnabled;
+
+            if (state.notificationsEnabled) {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+                scheduleNextReminder(state.reminderIntervalMin);
+                showToast('🔔 Đã bật nhắc nhở uống nước');
+            } else {
+                showToast('🔕 Đã tắt nhắc nhở uống nước');
+            }
+
+            saveState();
+            updateUI();
+        }
+
+        function toggleNightProtection() {
+            state.nightProtection = document.getElementById('night-mode-toggle').checked;
+            scheduleNextReminder(state.reminderIntervalMin);
+            if (state.nightProtection) {
+                showToast('🌙 Đã bật bảo vệ giấc ngủ: Ngừng nhắc sau 20:00');
+            } else {
+                showToast('⚠️ Đã tắt giới hạn giờ ban đêm');
+            }
+            saveState();
+            updateUI();
+        }
+
+        // --- CẬP NHẬT GIAO DIỆN TOÀN TRANG ---
+        function updateUI() {
+            document.getElementById('current-ml').textContent = state.current;
+            document.getElementById('goal-ml').textContent = state.goal;
+
+            const pct = Math.min(100, Math.round((state.current / state.goal) * 100));
+            document.getElementById('percent-badge').textContent = `${pct}% hoàn thành`;
+
+            const circumference = 816.8;
+            const offset = circumference - (pct / 100) * circumference;
+            document.getElementById('progress-ring').style.strokeDashoffset = offset;
+
+            const waveTop = Math.max(0, 100 - pct);
+            document.getElementById('wave-1').style.top = `${waveTop}%`;
+            document.getElementById('wave-2').style.top = `${Math.max(0, waveTop - 3)}%`;
+
+            const level = Math.floor(state.streakDays / 3) + 1;
+            const ranks = ['Giọt nước mầm non', 'Suối nguồn tươi trẻ', 'Chiến binh Hydrate', 'Bậc thầy cân bằng', 'Thần hộ mệnh sức khỏe'];
+            const rankTitle = ranks[Math.min(level - 1, ranks.length - 1)];
+
+            document.getElementById('user-level-badge').textContent = `Level ${level}`;
+            document.getElementById('streak-badge').textContent = `${state.streakDays} ngày`;
+            document.getElementById('user-rank-title').textContent = rankTitle;
+
+            document.getElementById('bell-icon-on').classList.toggle('hidden', !state.notificationsEnabled);
+            document.getElementById('bell-icon-off').classList.toggle('hidden', state.notificationsEnabled);
+            document.getElementById('bell-status-dot').classList.toggle('hidden', !state.notificationsEnabled);
+
+            document.getElementById('night-mode-toggle').checked = state.nightProtection;
+            document.getElementById('night-shield-status').textContent = state.nightProtection ? '🌙 Khóa sau 20:00' : '⏰ Nhắc 24/24';
+
+            updateVolumeDisplay();
+            selectDrinkWithoutToast(state.selectedDrink);
+            updateReminderText();
+
+            document.getElementById('undo-btn').disabled = state.logs.length === 0;
+
+            updateBulkToolbarUI();
+            renderHistoryList();
+        }
+
+        function selectDrinkWithoutToast(drinkKey) {
+            document.querySelectorAll('.drink-tab').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-sky-600', 'shadow-sm');
+                btn.classList.add('text-white/90', 'hover:bg-white/10');
+            });
+            const activeBtn = document.getElementById(`drink-${drinkKey}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-white/90', 'hover:bg-white/10');
+                activeBtn.classList.add('bg-white', 'text-sky-600', 'shadow-sm');
+                document.getElementById('selected-drink-icon').textContent = DRINKS[drinkKey].icon;
+            }
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('history-list');
+            document.getElementById('log-count').textContent = state.logs.length;
+
+            if (state.logs.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-3">Chưa có dữ liệu hôm nay. Hãy bấm nút uống nước nhé!</p>`;
+                return;
+            }
+
+            listEl.innerHTML = state.logs.map(item => {
+                const isChecked = selectedLogIds.has(item.id);
+                return `
+                <div onclick="${isBulkMode ? `toggleSelectLog(${item.id})` : ''}" class="flex items-center justify-between ${isChecked ? 'bg-sky-500/25 border-sky-400/60 shadow-sm' : 'bg-white/5 border-white/10'} px-3 py-2 rounded-xl text-xs border transition ${isBulkMode ? 'cursor-pointer hover:bg-sky-500/15' : ''}">
+                    <div class="flex items-center gap-2.5">
+                        ${isBulkMode ? `
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectLog(${item.id})" class="w-5 h-5 rounded-md accent-sky-400 cursor-pointer shrink-0">
+                        ` : ''}
+                        <span class="text-base">${item.icon}</span>
+                        <span class="font-semibold text-white">${item.drinkName}</span>
+                        <span class="text-sky-300 font-bold">+${item.amount}ml</span>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-slate-400">${item.time}</span>
+                        ${!isBulkMode ? `
+                            <button onclick="deleteLogItem(${item.id})" class="text-slate-400 hover:text-rose-400 transition px-1.5 py-0.5 rounded hover:bg-white/10" title="Xóa mục này">✕</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // --- ĐIỀU KHIỂN MODAL CÀI ĐẶT ---
+        function openSettingsModal() {
+            document.getElementById('goal-slider').value = state.goal;
+            document.getElementById('modal-goal-display').textContent = state.goal;
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function updateGoalPreview(val) {
+            document.getElementById('modal-goal-display').textContent = val;
+        }
+
+        function saveGoalSetting() {
+            state.goal = parseInt(document.getElementById('goal-slider').value, 10);
+            state.completedToday = state.current >= state.goal;
+            closeSettingsModal();
+            saveState();
+            updateUI();
+            showToast(`🎯 Đã cập nhật mục tiêu ngày: ${state.goal}ml`);
+        }
+
+        function openReminderModal() {
+            document.querySelectorAll('.interval-opt').forEach(btn => {
+                const min = parseInt(btn.getAttribute('data-min'), 10);
+                if (min === state.reminderIntervalMin) {
+                    btn.className = `interval-opt ${min === 120 ? 'col-span-2' : ''} py-3 px-3 rounded-2xl border border-sky-400 bg-sky-500/20 text-sky-300 text-sm font-bold transition`;
+                } else {
+                    btn.className = `interval-opt ${min === 120 ? 'col-span-2' : ''} py-3 px-3 rounded-2xl border border-white/15 bg-white/5 hover:bg-sky-500/20 text-sm font-semibold transition`;
+                }
+            });
+            document.getElementById('reminder-modal').classList.remove('hidden');
+        }
+
+        function closeReminderModal() {
+            document.getElementById('reminder-modal').classList.add('hidden');
+        }
+
+        function setReminderInterval(minutes) {
+            state.reminderIntervalMin = minutes;
+            scheduleNextReminder(minutes);
+            openReminderModal();
+            updateReminderText();
+            showToast(`⏰ Đã đặt nhắc mỗi ${minutes} phút`);
+        }
+
+        function openCustomVolModal() {
+            document.getElementById('custom-vol-modal').classList.remove('hidden');
+            document.getElementById('custom-vol-input').focus();
+        }
+
+        function closeCustomVolModal() {
+            document.getElementById('custom-vol-modal').classList.add('hidden');
+        }
+
+        function confirmCustomVolume() {
+            const val = parseInt(document.getElementById('custom-vol-input').value, 10);
+            if (isNaN(val) || val < 10 || val > 2000) {
+                showToast('⚠️ Vui lòng nhập dung tích từ 10ml đến 2000ml');
+                return;
+            }
+            closeCustomVolModal();
+            addWater(val);
+        }
+
+        function openConfirmModal(title, desc, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-desc').textContent = desc;
+            const yesBtn = document.getElementById('confirm-yes-btn');
+            yesBtn.onclick = function() {
+                closeConfirmModal();
+                onConfirm();
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function openGuideModal() {
+            document.getElementById('guide-modal').classList.remove('hidden');
+        }
+
+        function closeGuideModal() {
+            document.getElementById('guide-modal').classList.add('hidden');
+        }
+
+        // --- ÂM THANH WEB AUDIO API DỊU NHẸ (KHÔNG CẦN THƯ VIỆN NGOÀI) ---
+        function playWaterDropSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(780, ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.16);
+            } catch (e) {}
+        }
+
+        function playChimeSound(isVictory) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const notes = isVictory ? [523.25, 659.25, 783.99, 1046.5] : [587.33, 880];
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    const startTime = ctx.currentTime + idx * 0.14;
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    gain.gain.setValueAtTime(0.18, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.26);
+                });
+            } catch (e) {}
+        }
+
+        function testReminderNotification() {
+            playChimeSound(false);
+            showToast('🔔 Thông báo thử: Đến giờ uống nước rồi bạn ơi! (+200ml)');
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification('Giọt Nước nhắc bạn 💧', {
+                        body: `Thông báo thử nghiệm hoạt động tốt! Tiến độ: ${state.current}/${state.goal}ml.`
+                    });
+                } else if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(perm => {
+                        if (perm === 'granted') {
+                            new Notification('Giọt Nước nhắc bạn 💧', {
+                                body: 'Đã cấp quyền thông báo thành công!'
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        // --- THÔNG BÁO TOAST ---
+        let toastTimeout = null;
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            document.getElementById('toast-text').textContent = message;
+
+            container.classList.remove('opacity-0', 'translate-y-[-10px]');
+            container.classList.add('opacity-100', 'translate-y-0');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                container.classList.remove('opacity-100', 'translate-y-0');
+                container.classList.add('opacity-0', 'translate-y-[-10px]');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
